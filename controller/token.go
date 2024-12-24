@@ -211,19 +211,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             min-width: 120px;
         }
         .clear-btn { background-color: #c41e3a; }
-        .token-list {
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #d4a682;
-            border-radius: 4px;
-            background-color: #fff9f0;
-            padding: 10px;
-        }
-        .token-item {
-            padding: 10px;
-            border-bottom: 1px solid #e8d5c5;
-            word-break: break-all;
-        }
         .message {
             position: fixed;
             top: 20px;
@@ -255,7 +242,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             <button onclick="addTokens()">批量添加</button>
             <button class="clear-btn" onclick="clearTokens()">清空所有</button>
         </div>
-        <div class="token-list" id="tokenList"></div>
         <div id="message" class="message"></div>
     </div>
     <script>
@@ -280,10 +266,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
                 if (data.code === 200 && data.data) {
                     const tokens = data.data.trim().split("\n").filter(t => t);
                     document.getElementById("tokenCount").textContent = tokens.length;
-                    const tokenList = document.getElementById("tokenList");
-                    tokenList.innerHTML = tokens.map(token =>
-                        "<div class=\"token-item\">" + token + "</div>"
-                    ).join("");
                 }
             } catch (error) {
                 showMessage("加载失败: " + error.message, true);
