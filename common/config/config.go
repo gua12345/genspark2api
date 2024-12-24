@@ -14,6 +14,7 @@ var (
     ApiSecrets = strings.Split(os.Getenv("API_SECRET"), ",")
     TokenOperationPassword = os.Getenv("TOKEN_OPERATION_PASSWORD")
     GSCookies []string
+    AutoDelChat = env.Int("AUTO_DEL_CHAT", 0)
     AllDialogRecordEnable = os.Getenv("ALL_DIALOG_RECORD_ENABLE")
     RequestOutTime = os.Getenv("REQUEST_OUT_TIME")
     StreamRequestOutTime = os.Getenv("STREAM_REQUEST_OUT_TIME")
