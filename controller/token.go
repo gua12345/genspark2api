@@ -7,6 +7,7 @@ import (
     "genspark2api/common/config"
     "github.com/gin-gonic/gin"
     "sync"
+    "bufio"
 )
 
 var (
