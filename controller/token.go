@@ -6,6 +6,11 @@ import (
     "os"
     "genspark2api/common/config"
     "github.com/gin-gonic/gin"
+    "sync"
+)
+
+var (
+    tokenFileMutex sync.Mutex  // 添加文件写入锁
 )
 
 const tokenFilePath = "/app/genspark2api/data/token.txt"
@@ -58,7 +63,6 @@ func (t *TokenController) AppendToken(c *gin.Context) {
     var req struct {
         Token string `json:"token" binding:"required"`
     }
-
     if err := c.ShouldBindJSON(&req); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{
             "code": http.StatusBadRequest,
@@ -78,6 +82,10 @@ func (t *TokenController) AppendToken(c *gin.Context) {
         return
     }
 
+    // 使用互斥锁保护文件写入
+    tokenFileMutex.Lock()
+    defer tokenFileMutex.Unlock()
+
     // 以追加模式打开文件
     f, err := os.OpenFile(tokenFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
     if err != nil {
@@ -90,8 +98,19 @@ func (t *TokenController) AppendToken(c *gin.Context) {
     }
     defer f.Close()
 
-    // 写入新行
-    if _, err := f.WriteString(req.Token + "\n"); err != nil {
+    // 使用缓冲写入提高性能
+    writer := bufio.NewWriter(f)
+    if _, err := writer.WriteString(req.Token + "\n"); err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{
+            "code": http.StatusInternalServerError,
+            "message": "写入文件失败",
+            "data": nil,
+        })
+        return
+    }
+
+    // 确保数据写入磁盘
+    if err := writer.Flush(); err != nil {
         c.JSON(http.StatusInternalServerError, gin.H{
             "code": http.StatusInternalServerError,
             "message": "写入文件失败",
@@ -210,6 +229,10 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             font-size: 16px;
             min-width: 120px;
         }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
         .clear-btn { background-color: #c41e3a; }
         .message {
             position: fixed;
@@ -223,6 +246,12 @@ func (t *TokenController) TokenPage(c *gin.Context) {
         }
         .success { background-color: #dff0d8; color: #3c763d; }
         .error { background-color: #f2dede; color: #a94442; }
+        .progress {
+            text-align: center;
+            margin-top: 10px;
+            color: #8b4513;
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -238,16 +267,22 @@ func (t *TokenController) TokenPage(c *gin.Context) {
                 <br>• 使用 Ctrl + Enter 快捷键添加
             </div>
         </div>
+        <div class="progress" id="progress">处理中: <span id="progressText">0/0</span></div>
         <div class="button-group">
-            <button onclick="addTokens()">批量添加</button>
-            <button class="clear-btn" onclick="clearTokens()">清空所有</button>
+            <button id="addButton" onclick="addTokens()">批量添加</button>
+            <button id="clearButton" class="clear-btn" onclick="clearTokens()">清空所有</button>
         </div>
         <div id="message" class="message"></div>
     </div>
+
     <script>
         const password = window.location.pathname.split("/")[1];
+        const addButton = document.getElementById("addButton");
+        const clearButton = document.getElementById("clearButton");
+        const progress = document.getElementById("progress");
+        const progressText = document.getElementById("progressText");
 
-        function showMessage(text, isError) {
+        function showMessage(text, isError = false) {
             const msg = document.getElementById("message");
             msg.textContent = text;
             msg.style.display = "block";
@@ -262,7 +297,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
                 const response = await fetch("/" + password + "/token/list");
                 const text = await response.text();
                 const data = JSON.parse(text);
-
                 if (data.code === 200 && data.data) {
                     const tokens = data.data.trim().split("\n").filter(t => t);
                     document.getElementById("tokenCount").textContent = tokens.length;
@@ -281,39 +315,54 @@ func (t *TokenController) TokenPage(c *gin.Context) {
                 return;
             }
 
-            let successCount = 0;
-            let failCount = 0;
+            // 禁用按钮，显示进度
+            addButton.disabled = true;
+            clearButton.disabled = true;
+            progress.style.display = "block";
+            let completed = 0;
 
-            for (const token of tokens) {
-                try {
-                    const response = await fetch("/" + password + "/token/append", {
-                        method: "POST",
-                        headers: {"Content-Type": "application/json"},
-                        body: JSON.stringify({token: token.trim()})
-                    });
-                    const data = await response.json();
-                    if (data.code === 200) {
-                        successCount++;
-                    } else {
-                        failCount++;
-                    }
-                } catch (error) {
-                    failCount++;
+            // 使用 Promise.all 并发发送请求
+            const promises = tokens.map(token => 
+                fetch("/" + password + "/token/append", {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({token: token.trim()})
+                })
+                .then(response => response.json())
+                .then(result => {
+                    completed++;
+                    progressText.textContent = `${completed}/${tokens.length}`;
+                    return result;
+                })
+            );
+
+            try {
+                const results = await Promise.all(promises);
+                const successCount = results.filter(r => r.code === 200).length;
+                const failCount = tokens.length - successCount;
+
+                if (successCount > 0) {
+                    showMessage("成功添加 " + successCount + " 个Token" + 
+                        (failCount > 0 ? "，失败 " + failCount + " 个" : ""));
+                    textarea.value = "";
+                    loadTokens();
+                } else {
+                    showMessage("添加失败", true);
                 }
-            }
-
-            if (successCount > 0) {
-                showMessage("成功添加 " + successCount + " 个Token" + (failCount > 0 ? "，失败 " + failCount + " 个" : ""));
-                textarea.value = "";
-                loadTokens();
-            } else {
-                showMessage("添加失败", true);
+            } catch (error) {
+                showMessage("添加失败: " + error.message, true);
+            } finally {
+                // 恢复按钮状态，隐藏进度
+                addButton.disabled = false;
+                clearButton.disabled = false;
+                progress.style.display = "none";
             }
         }
 
         async function clearTokens() {
             if (!confirm("确定要清空所有 Token 吗？此操作不可恢复！")) return;
             
+            clearButton.disabled = true;
             try {
                 const response = await fetch("/" + password + "/token/clear", {
                     method: "POST"
@@ -327,6 +376,8 @@ func (t *TokenController) TokenPage(c *gin.Context) {
                 }
             } catch (error) {
                 showMessage("清空失败: " + error.message, true);
+            } finally {
+                clearButton.disabled = false;
             }
         }
 
@@ -336,10 +387,11 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             }
         });
 
+        // 页面加载时获取token数量
         loadTokens();
     </script>
 </body>
-</html>`
+</html> `
     c.Header("Content-Type", "text/html; charset=utf-8")
     c.String(http.StatusOK, html)
 }
