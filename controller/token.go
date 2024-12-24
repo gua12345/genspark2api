@@ -407,7 +407,7 @@ func (t *TokenController) TokenPage(c *gin.Context) {
                 }
 
                 if (successCount > 0) {
-                    showMessage(`成功添加 ${successCount} 个Token，失败 ${failCount} 个`);
+                    showMessage("成功添加 " + successCount + " 个Token，失败 " + failCount + " 个");
                     textarea.value = "";
                     loadTokens();
                 } else {
