@@ -135,7 +135,7 @@ func (t *TokenController) TokenPage(c *gin.Context) {
     if !validatePathPassword(c) {
         return
     }
-
+    
     html := `
 <!DOCTYPE html>
 <html>
@@ -149,7 +149,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             padding: 0;
             box-sizing: border-box;
         }
-
         body {
             font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
             background-color: #f7f1e6;
@@ -159,7 +158,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             justify-content: center;
             min-height: 100vh;
         }
-
         .container {
             background-color: white;
             padding: 30px;
@@ -171,7 +169,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             position: relative;
             border: 1px solid rgba(139, 69, 19, 0.2);
         }
-
         .container::before {
             content: '';
             position: absolute;
@@ -183,7 +180,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             border-radius: 6px;
             pointer-events: none;
         }
-
         .title {
             text-align: center;
             color: #8b4513;
@@ -193,7 +189,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             border-bottom: 2px solid #d4a682;
             position: relative;
         }
-
         .title::after {
             content: '';
             position: absolute;
@@ -204,7 +199,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             height: 2px;
             background-color: #8b4513;
         }
-
         .stats {
             text-align: center;
             margin-bottom: 25px;
@@ -214,12 +208,10 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             background-color: rgba(212, 166, 130, 0.1);
             border-radius: 4px;
         }
-
         .input-group {
             margin-bottom: 20px;
             width: 100%;
         }
-
         textarea {
             width: 100%;
             height: 150px;
@@ -233,20 +225,17 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             background-color: #fff9f0;
             transition: border-color 0.3s, box-shadow 0.3s;
         }
-
         textarea:focus {
             outline: none;
             border-color: #8b4513;
             box-shadow: 0 0 5px rgba(139, 69, 19, 0.2);
         }
-
         .button-group {
             display: flex;
             justify-content: center;
             gap: 15px;
             margin-bottom: 20px;
         }
-
         button {
             background-color: #8b4513;
             color: white;
@@ -258,26 +247,21 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             font-size: 16px;
             min-width: 120px;
         }
-
         button:hover {
             background-color: #5c3317;
             transform: translateY(-1px);
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-
         button:active {
             transform: translateY(0);
             box-shadow: none;
         }
-
         .clear-btn {
             background-color: #c41e3a;
         }
-
         .clear-btn:hover {
             background-color: #a01830;
         }
-
         .tips {
             color: #8b4513;
             font-size: 14px;
@@ -287,7 +271,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             border-radius: 4px;
             border-left: 3px solid #d4a682;
         }
-
         .token-list {
             max-height: 400px;
             overflow-y: auto;
@@ -296,20 +279,16 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             background-color: #fff9f0;
             padding: 10px;
         }
-
         .token-list::-webkit-scrollbar {
             width: 8px;
         }
-
         .token-list::-webkit-scrollbar-track {
             background: #fff9f0;
         }
-
         .token-list::-webkit-scrollbar-thumb {
             background-color: #d4a682;
             border-radius: 4px;
         }
-
         .token-item {
             padding: 10px;
             border-bottom: 1px solid #e8d5c5;
@@ -318,21 +297,17 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             align-items: center;
             transition: background-color 0.3s;
         }
-
         .token-item:last-child {
             border-bottom: none;
         }
-
         .token-item:hover {
             background-color: rgba(212, 166, 130, 0.1);
         }
-
         .token-text {
             word-break: break-all;
             font-family: monospace;
             color: #5c3317;
         }
-
         .message {
             position: fixed;
             top: 20px;
@@ -344,34 +319,28 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             z-index: 1000;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-
         .success {
             background-color: #dff0d8;
             color: #3c763d;
             border: 1px solid #d6e9c6;
         }
-
         .error {
             background-color: #f2dede;
             color: #a94442;
             border: 1px solid #ebccd1;
         }
-
         @media (max-width: 600px) {
             .container {
                 padding: 15px;
                 margin-top: 10px;
             }
-
             .title {
                 font-size: 24px;
             }
-
             .button-group {
                 flex-direction: column;
                 gap: 10px;
             }
-
             button {
                 width: 100%;
             }
@@ -382,7 +351,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
     <div class="container">
         <div class="title">Token 管理系统</div>
         <div class="stats">当前 Token 数量: <span id="tokenCount">0</span></div>
-        
         <div class="input-group">
             <textarea id="newTokens" placeholder="请输入Token，每行一个&#10;例如：&#10;token1&#10;token2&#10;token3"></textarea>
             <div class="tips">
@@ -392,25 +360,21 @@ func (t *TokenController) TokenPage(c *gin.Context) {
                 <br>• 使用 Ctrl + Enter 快捷键添加
             </div>
         </div>
-        
         <div class="button-group">
             <button onclick="addTokens()">批量添加</button>
             <button class="clear-btn" onclick="clearTokens()">清空所有</button>
         </div>
-
         <div class="token-list" id="tokenList"></div>
         <div id="message" class="message"></div>
     </div>
-
     <script>
         const password = window.location.pathname.split('/')[1];
-        
+
         function showMessage(text, isError = false) {
             const msg = document.getElementById('message');
             msg.textContent = text;
             msg.style.display = 'block';
             msg.className = 'message ' + (isError ? 'error' : 'success');
-            
             setTimeout(() => {
                 msg.style.opacity = '0';
                 msg.style.transition = 'opacity 0.5s ease';
@@ -424,17 +388,27 @@ func (t *TokenController) TokenPage(c *gin.Context) {
 
         async function loadTokens() {
             try {
-                const response = await fetch('/api/' + password + '/token/list');
-                const data = await response.json();
-                if (data.code === 200) {
+                const response = await fetch('/' + password + '/token/list');
+                const text = await response.text();
+                
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    throw new Error(`Invalid JSON response: ${text}`);
+                }
+
+                if (data.code === 200 && data.data) {
                     const tokens = data.data.trim().split('\n').filter(t => t);
                     document.getElementById('tokenCount').textContent = tokens.length;
                     const tokenList = document.getElementById('tokenList');
-                    tokenList.innerHTML = tokens.map(token => 
+                    tokenList.innerHTML = tokens.map(token =>
                         '<div class="token-item">' +
                         '<span class="token-text">' + token + '</span>' +
                         '</div>'
                     ).join('');
+                } else {
+                    throw new Error(data.message || 'Unknown error');
                 }
             } catch (error) {
                 showMessage('加载失败: ' + error.message, true);
@@ -455,7 +429,7 @@ func (t *TokenController) TokenPage(c *gin.Context) {
 
             for (const token of tokens) {
                 try {
-                    const response = await fetch('/api/' + password + '/token/append', {
+                    const response = await fetch('/' + password + '/token/append', {
                         method: 'POST',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({token: token.trim()})
@@ -482,9 +456,9 @@ func (t *TokenController) TokenPage(c *gin.Context) {
 
         async function clearTokens() {
             if (!confirm('确定要清空所有 Token 吗？此操作不可恢复！')) return;
-
+            
             try {
-                const response = await fetch('/api/' + password + '/token/clear', {
+                const response = await fetch('/' + password + '/token/clear', {
                     method: 'POST'
                 });
                 const data = await response.json();
@@ -492,7 +466,7 @@ func (t *TokenController) TokenPage(c *gin.Context) {
                     showMessage('所有 Token 已清空');
                     loadTokens();
                 } else {
-                    showMessage(data.message, true);
+                    showMessage(data.message || '清空失败', true);
                 }
             } catch (error) {
                 showMessage('清空失败: ' + error.message, true);
@@ -505,6 +479,7 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             }
         });
 
+        // 页面加载完成后自动加载 Token 列表
         loadTokens();
     </script>
 </body>
