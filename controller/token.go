@@ -331,7 +331,7 @@ func (t *TokenController) TokenPage(c *gin.Context) {
                 .then(response => response.json())
                 .then(result => {
                     completed++;
-                    progressText.textContent = `${completed}/${tokens.length}`;
+                    progressText.textContent = completed + "/" + tokens.length;
                     return result;
                 })
             );
