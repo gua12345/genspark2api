@@ -253,6 +253,11 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             color: #8b4513;
             display: none;
         }
+        .progress-detail {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -268,7 +273,13 @@ func (t *TokenController) TokenPage(c *gin.Context) {
                 <br>• 使用 Ctrl + Enter 快捷键添加
             </div>
         </div>
-        <div class="progress" id="progress">处理中: <span id="progressText">0/0</span></div>
+        <div class="progress" id="progress">
+            处理进度: <span id="progressText">0/0</span>
+            <div class="progress-detail">
+                成功: <span id="successCount">0</span>
+                失败: <span id="failCount">0</span>
+            </div>
+        </div>
         <div class="button-group">
             <button id="addButton" onclick="addTokens()">批量添加</button>
             <button id="clearButton" class="clear-btn" onclick="clearTokens()">清空所有</button>
@@ -282,6 +293,8 @@ func (t *TokenController) TokenPage(c *gin.Context) {
         const clearButton = document.getElementById("clearButton");
         const progress = document.getElementById("progress");
         const progressText = document.getElementById("progressText");
+        const successCountElement = document.getElementById("successCount");
+        const failCountElement = document.getElementById("failCount");
 
         function showMessage(text, isError = false) {
             const msg = document.getElementById("message");
@@ -291,6 +304,12 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             setTimeout(() => {
                 msg.style.display = "none";
             }, 3000);
+        }
+
+        function updateProgress(completed, total, success, fail) {
+            progressText.textContent = completed + "/" + total;
+            successCountElement.textContent = success;
+            failCountElement.textContent = fail;
         }
 
         async function loadTokens() {
@@ -307,6 +326,45 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             }
         }
 
+        function delay(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        async function processToken(token, retries = 3) {
+            for (let attempt = 0; attempt < retries; attempt++) {
+                try {
+                    const response = await fetch("/" + password + "/token/append", {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({token: token.trim()})
+                    });
+
+                    if (!response.ok && response.status === 429) {
+                        await delay(1000 * (attempt + 1));
+                        continue;
+                    }
+
+                    const result = await response.json();
+                    return {
+                        success: result.code === 200,
+                        message: result.message
+                    };
+                } catch (error) {
+                    if (attempt === retries - 1) {
+                        return {
+                            success: false,
+                            message: error.message
+                        };
+                    }
+                    await delay(1000 * (attempt + 1));
+                }
+            }
+            return {
+                success: false,
+                message: "重试次数已用完"
+            };
+        }
+
         async function addTokens() {
             const textarea = document.getElementById("newTokens");
             const tokens = textarea.value.trim().split("\n").filter(t => t.trim());
@@ -316,35 +374,40 @@ func (t *TokenController) TokenPage(c *gin.Context) {
                 return;
             }
 
-            // 禁用按钮，显示进度
             addButton.disabled = true;
             clearButton.disabled = true;
             progress.style.display = "block";
             let completed = 0;
+            let successCount = 0;
+            let failCount = 0;
 
-            // 使用 Promise.all 并发发送请求
-            const promises = tokens.map(token => 
-                fetch("/" + password + "/token/append", {
-                    method: "POST",
-                    headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({token: token.trim()})
-                })
-                .then(response => response.json())
-                .then(result => {
-                    completed++;
-                    progressText.textContent = completed + "/" + tokens.length;
-                    return result;
-                })
-            );
+            const batchSize = 20;
 
             try {
-                const results = await Promise.all(promises);
-                const successCount = results.filter(r => r.code === 200).length;
-                const failCount = tokens.length - successCount;
+                for (let i = 0; i < tokens.length; i += batchSize) {
+                    const batch = tokens.slice(i, i + batchSize);
+                    const batchPromises = batch.map(token => 
+                        processToken(token)
+                            .then(result => {
+                                completed++;
+                                if (result.success) {
+                                    successCount++;
+                                } else {
+                                    failCount++;
+                                }
+                                updateProgress(completed, tokens.length, successCount, failCount);
+                                return result;
+                            })
+                    );
+
+                    await Promise.all(batchPromises);
+                    if (i + batchSize < tokens.length) {
+                        await delay(1000);
+                    }
+                }
 
                 if (successCount > 0) {
-                    showMessage("成功添加 " + successCount + " 个Token" + 
-                        (failCount > 0 ? "，失败 " + failCount + " 个" : ""));
+                    showMessage(`成功添加 ${successCount} 个Token，失败 ${failCount} 个`);
                     textarea.value = "";
                     loadTokens();
                 } else {
@@ -353,7 +416,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             } catch (error) {
                 showMessage("添加失败: " + error.message, true);
             } finally {
-                // 恢复按钮状态，隐藏进度
                 addButton.disabled = false;
                 clearButton.disabled = false;
                 progress.style.display = "none";
@@ -388,11 +450,10 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             }
         });
 
-        // 页面加载时获取token数量
         loadTokens();
     </script>
 </body>
-</html> `
+</html>`
     c.Header("Content-Type", "text/html; charset=utf-8")
     c.String(http.StatusOK, html)
 }
