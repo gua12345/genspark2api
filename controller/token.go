@@ -153,8 +153,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
         body {
             font-family: "Microsoft YaHei", "微软雅黑", sans-serif;
             background-color: #f7f1e6;
-            background-image: linear-gradient(rgba(247, 241, 230, 0.9), rgba(247, 241, 230, 0.9)),
-                            url('data:image/svg+xml,<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path fill="%23d4a682" fill-opacity="0.1" d="M0 0h100v100H0z"/></svg>');
             margin: 0;
             padding: 20px;
             display: flex;
@@ -194,7 +192,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             padding-bottom: 15px;
             border-bottom: 2px solid #d4a682;
             position: relative;
-            text-shadow: 1px 1px 2px rgba(139, 69, 19, 0.1);
         }
 
         .title::after {
@@ -260,9 +257,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             transition: all 0.3s ease;
             font-size: 16px;
             min-width: 120px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
         button:hover {
@@ -301,8 +295,6 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             border-radius: 4px;
             background-color: #fff9f0;
             padding: 10px;
-            scrollbar-width: thin;
-            scrollbar-color: #d4a682 #fff9f0;
         }
 
         .token-list::-webkit-scrollbar {
@@ -350,19 +342,7 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             border-radius: 4px;
             display: none;
             z-index: 1000;
-            animation: slideDown 0.3s ease;
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        @keyframes slideDown {
-            from {
-                transform: translate(-50%, -100%);
-                opacity: 0;
-            }
-            to {
-                transform: translate(-50%, 0);
-                opacity: 1;
-            }
         }
 
         .success {
@@ -402,7 +382,7 @@ func (t *TokenController) TokenPage(c *gin.Context) {
     <div class="container">
         <div class="title">Token 管理系统</div>
         <div class="stats">当前 Token 数量: <span id="tokenCount">0</span></div>
-
+        
         <div class="input-group">
             <textarea id="newTokens" placeholder="请输入Token，每行一个&#10;例如：&#10;token1&#10;token2&#10;token3"></textarea>
             <div class="tips">
@@ -412,7 +392,7 @@ func (t *TokenController) TokenPage(c *gin.Context) {
                 <br>• 使用 Ctrl + Enter 快捷键添加
             </div>
         </div>
-
+        
         <div class="button-group">
             <button onclick="addTokens()">批量添加</button>
             <button class="clear-btn" onclick="clearTokens()">清空所有</button>
@@ -424,14 +404,13 @@ func (t *TokenController) TokenPage(c *gin.Context) {
 
     <script>
         const password = window.location.pathname.split('/')[1];
-
+        
         function showMessage(text, isError = false) {
             const msg = document.getElementById('message');
             msg.textContent = text;
             msg.style.display = 'block';
             msg.className = 'message ' + (isError ? 'error' : 'success');
-
-            // 自动消失
+            
             setTimeout(() => {
                 msg.style.opacity = '0';
                 msg.style.transition = 'opacity 0.5s ease';
@@ -451,11 +430,11 @@ func (t *TokenController) TokenPage(c *gin.Context) {
                     const tokens = data.data.trim().split('\n').filter(t => t);
                     document.getElementById('tokenCount').textContent = tokens.length;
                     const tokenList = document.getElementById('tokenList');
-                    tokenList.innerHTML = tokens.map((token, index) => `
-                        <div class="token-item">
-                            <span class="token-text">${token}</span>
-                        </div>
-                    `).join('');
+                    tokenList.innerHTML = tokens.map(token => 
+                        '<div class="token-item">' +
+                        '<span class="token-text">' + token + '</span>' +
+                        '</div>'
+                    ).join('');
                 }
             } catch (error) {
                 showMessage('加载失败: ' + error.message, true);
@@ -465,7 +444,7 @@ func (t *TokenController) TokenPage(c *gin.Context) {
         async function addTokens() {
             const textarea = document.getElementById('newTokens');
             const tokens = textarea.value.trim().split('\n').filter(t => t.trim());
-
+            
             if (tokens.length === 0) {
                 showMessage('请输入至少一个Token', true);
                 return;
@@ -493,7 +472,7 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             }
 
             if (successCount > 0) {
-                showMessage(`成功添加 ${successCount} 个Token${failCount > 0 ? `，失败 ${failCount} 个` : ''}`);
+                showMessage('成功添加 ' + successCount + ' 个Token' + (failCount > 0 ? '，失败 ' + failCount + ' 个' : ''));
                 textarea.value = '';
                 loadTokens();
             } else {
@@ -520,14 +499,12 @@ func (t *TokenController) TokenPage(c *gin.Context) {
             }
         }
 
-        // 添加快捷键支持
         document.addEventListener('keydown', function(e) {
             if (e.ctrlKey && e.key === 'Enter') {
                 addTokens();
             }
         });
 
-        // 页面加载时获取token列表
         loadTokens();
     </script>
 </body>
